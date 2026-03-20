@@ -18,7 +18,7 @@ pip install -r requirements.txt
 - `fruit_dataset_640/data.yaml`
 - `data_640_demo_day/data.yaml`
 
-Note: dataset directories are typically managed externally (see `docs/artifact-policy.md`).
+Note: dataset directories are typically managed externally.
 The repo expects the directory names above to exist on disk.
 
 ## 3) Pretrained weights
