@@ -39,7 +39,7 @@ runs/
 # Allow small run metadata that is useful for review.
 !runs/**/results.csv
 !runs/**/args.yaml
-!runs/STRUKTUR_BEISPIEL.md
+!runs/STRUCTURE_README.md
 
 # Belt-and-suspenders: never version run plots/images.
 runs/**/*.jpg
