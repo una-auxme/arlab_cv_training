@@ -9,7 +9,7 @@
 # Request memory (default 512M)
 #SBATCH --mem=32G
 
-# CPU cores per task (für DataLoader num_workers)
+# CPU cores per task (for DataLoader num_workers)
 #SBATCH --cpus-per-task=16
 
 # Request GPU (1×Nvidia A100)
@@ -21,7 +21,7 @@
 # Send mail to this address. Fill in valid mail address or delete this line.
 #SBATCH --mail-user=aleksander1.michalak@uni-a.de
 
-# Timelimit 2 days (für YOLO Training mit 4 Experimenten)
+# Timelimit 2 days (for YOLO training with 4 experiments)
 #SBATCH --time=2-00:00:00
 
 # Set number of OpenMP threads (1 pro Worker, um Over-subscription zu vermeiden)
@@ -29,7 +29,7 @@ export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
 
-# Output und Error Logs:
+# Output and error logs:
 #SBATCH --output=/hpc/gpfs2/home/u/michalek/arlab_cv_training/logs/training/train_yolo11_fruit_%j.out
 #SBATCH --error=/hpc/gpfs2/home/u/michalek/arlab_cv_training/logs/training/train_yolo11_fruit_%j.err
 

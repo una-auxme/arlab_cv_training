@@ -92,13 +92,13 @@ def read_val_metrics(results_csv: Path) -> Dict[str, Optional[float]]:
 
     keys = list(reader.fieldnames)
 
-    # Kandidatenlisten (Masken zuerst, dann fallback)
+    # Candidate columns (masks first, then fallback)
     col_p_m = find_col(keys, ["metrics/precision(m)", "metrics/precision"])
     col_r_m = find_col(keys, ["metrics/recall(m)", "metrics/recall"])
     col_m50_m = find_col(keys, ["metrics/segm_map50", "metrics/segm_mAP50", "metrics/map50"])
     col_m5095_m = find_col(keys, ["metrics/segm_map50-95", "metrics/segm_mAP50-95", "metrics/map50-95"])
     
-    # Box-Metriken
+    # Box metrics
     col_p_b = find_col(keys, ["metrics/precision(b)", "metrics/precision"])
     col_r_b = find_col(keys, ["metrics/recall(b)", "metrics/recall"])
     col_m50_b = find_col(keys, ["metrics/box_map50", "metrics/box_mAP50", "metrics/map50"])
@@ -159,33 +159,35 @@ def evaluate_model(model_path: Path, model_name: str, experiment: str) -> Dict:
         # Retrieve timestamp for this model
         timestamp = MODEL_TIMESTAMPS.get(model_name)
         if not timestamp:
-            raise ValueError(f"Kein Timestamp für Modell '{model_name}' gefunden. Verfügbare: {list(MODEL_TIMESTAMPS.keys())}")
+            raise ValueError(
+                f"No timestamp found for model '{model_name}'. Available: {list(MODEL_TIMESTAMPS.keys())}"
+            )
         
         # Validate that `model_path` is inside the expected runs directory
         expected_base = project_root / "runs" / "segment" / model_name / timestamp
         if not str(model_path).startswith(str(expected_base)):
-            raise ValueError(f"Model-Pfad außerhalb der erlaubten Verzeichnisse: {model_path}")
+            raise ValueError(f"Model path is outside the expected runs directory: {model_path}")
         
-        # Lade Modell
+        # Load model
         model = YOLO(str(model_path))
         
         # Extract metrics from `results.csv` in the training directory.
         # Expected structure: runs/segment/{model_name}/{timestamp}/{experiment}/results.csv
-        # model_path ist: runs/segment/{model_name}/{timestamp}/{experiment}/weights/best.pt
+        # model_path is: runs/segment/{model_name}/{timestamp}/{experiment}/weights/best.pt
         train_dir = model_path.parent.parent  # Von weights/best.pt zu experiment/
         
         # Validate that `train_dir` is inside the expected runs directory
         if not str(train_dir).startswith(str(expected_base)):
-            raise ValueError(f"Train-Dir außerhalb der erlaubten Verzeichnisse: {train_dir}")
+            raise ValueError(f"Train directory is outside the expected runs directory: {train_dir}")
         
         results_csv = train_dir / "results.csv"
         
         # Try reading metrics from the training results directory first
         metrics = read_val_metrics(results_csv)
         
-        # Fallback: Falls CSV nicht existiert oder leer, führe neue Validation durch
+        # Fallback: if the CSV does not exist or is empty, run a new validation pass
         if not metrics.get("f1_M"):
-            print(f"   🔄 Führe neue Validation durch (CSV nicht gefunden oder leer)...")
+            print("   🔄 Running a new validation pass (CSV not found or empty)...")
             val_args = VAL_ARGS.copy()
             val_args['plots'] = True
             # Speichere Validation-Output im evaluation Verzeichnis
@@ -193,7 +195,7 @@ def evaluate_model(model_path: Path, model_name: str, experiment: str) -> Dict:
             val_args['name'] = f"val_{model_name}_{experiment}"
             results = model.val(**val_args, verbose=False)
             
-            # Versuche Metriken direkt aus results zu extrahieren
+            # Try extracting metrics directly from the `results` object
             if hasattr(results, 'seg'):
                 seg = results.seg
                 p_m = safe_float(getattr(seg, 'p', None))
@@ -208,7 +210,7 @@ def evaluate_model(model_path: Path, model_name: str, experiment: str) -> Dict:
                     metrics["mAP50_M"] = map50_m
                     metrics["mAP50-95_M"] = map5095_m
             
-            # Box-Metriken
+            # Box metrics
             if hasattr(results, 'box'):
                 box = results.box
                 metrics["precision_B"] = safe_float(getattr(box, 'p', None))
@@ -255,26 +257,26 @@ def evaluate_model(model_path: Path, model_name: str, experiment: str) -> Dict:
 
 def main():
     print("=" * 90)
-    print("📊 MODEL COMPARISON: Alle Augmentation-Varianten")
+    print("📊 MODEL COMPARISON: All augmentation variants")
     print("=" * 90)
-    print(f"Validation-Parameter: conf={VAL_ARGS['conf']}, iou={VAL_ARGS['iou']}")
+    print(f"Validation parameters: conf={VAL_ARGS['conf']}, iou={VAL_ARGS['iou']}")
     print(f"Dataset: {DATA_YAML}")
-    print(f"Timestamps pro Modell:")
+    print("Timestamps per model:")
     for model_name, timestamp in MODEL_TIMESTAMPS.items():
         print(f"  - {model_name}: {timestamp}")
     
     # Create evaluation directory for all outputs
     evaluation_dir = project_root / "evaluation"
     evaluation_dir.mkdir(exist_ok=True)
-    print(f"📁 Output-Verzeichnis: {evaluation_dir}")
+    print(f"📁 Output directory: {evaluation_dir}")
     
     all_results = []
     
-    # Evaluiere alle Modelle
+    # Evaluate all models
     for model_name in MODELS:
         timestamp = MODEL_TIMESTAMPS.get(model_name)
         if not timestamp:
-            print(f"⚠️ Kein Timestamp für {model_name} gefunden, überspringe...")
+            print(f"⚠️ No timestamp found for {model_name}, skipping...")
             continue
             
         for experiment in EXPERIMENTS:
@@ -289,13 +291,13 @@ def main():
             # Validate that the path is inside the expected runs directory
             expected_base = project_root / "runs" / "segment" / model_name / timestamp
             if not str(model_path).startswith(str(expected_base)):
-                raise ValueError(f"Pfad außerhalb der erlaubten Verzeichnisse: {model_path}")
+                raise ValueError(f"Path is outside the expected runs directory: {model_path}")
             
             result = evaluate_model(model_path, model_name, experiment)
             all_results.append(result)
     
     # Speichere als CSV im evaluation Verzeichnis
-    # Verwende einen kombinierten Timestamp für den Dateinamen
+    # Use a combined timestamp for the filename
     combined_timestamp = "_".join(sorted(MODEL_TIMESTAMPS.values()))
     output_csv = evaluation_dir / f"model_comparison_{combined_timestamp}.csv"
     
@@ -313,18 +315,18 @@ def main():
             row = {k: result.get(k) for k in fieldnames}
             writer.writerow(row)
     
-    print(f"\n📄 Vergleich gespeichert: {output_csv}")
+    print(f"\n📄 Comparison saved: {output_csv}")
     
     # Create a nice overview
     print("\n" + "=" * 90)
-    print("📊 VERGLEICHSÜBERSICHT")
+    print("📊 COMPARISON OVERVIEW")
     print("=" * 90)
     
-    # Sortiere nach F1 (Mask) für bessere Übersicht
+    # Sort by F1 (Mask) for a clearer overview
     valid_results = [r for r in all_results if r.get("f1_M") is not None]
     sorted_results = sorted(valid_results, key=lambda x: x.get("f1_M", 0), reverse=True)
     
-    print("\n🏆 RANKING nach F1-Score (Mask):")
+    print("\n🏆 Ranking by F1-score (Mask):")
     print("-" * 90)
     print(f"{'Experiment':<20} | {'Model':<15} | {'F1':<6} | {'P':<6} | {'R':<6} | {'mAP50':<7} | {'mAP50-95':<8}")
     print("-" * 90)
@@ -340,9 +342,9 @@ def main():
         
         print(f"{exp:<20} | {model:<15} | {f1:<6.3f} | {p:<6.3f} | {r_val:<6.3f} | {mAP50:<7.3f} | {mAP50_95:<8.3f}")
     
-    # Vergleich nach Experiment
+    # Comparison by experiment
     print("\n" + "=" * 90)
-    print("📈 VERGLEICH NACH EXPERIMENT")
+    print("📈 COMPARISON BY EXPERIMENT")
     print("=" * 90)
     
     for exp in EXPERIMENTS:
@@ -364,9 +366,9 @@ def main():
         else:
             print(f"\n🔬 {exp.upper()}: ⚠️ No metrics available")
     
-    # Vergleich nach Modell
+    # Comparison by model
     print("\n" + "=" * 90)
-    print("🤖 VERGLEICH NACH MODELL")
+    print("🤖 COMPARISON BY MODEL")
     print("=" * 90)
     
     for model in MODELS:
@@ -388,13 +390,13 @@ def main():
         else:
             print(f"\n🔬 {model.upper()}: ⚠️ No metrics available")
     
-    # Bestes Modell insgesamt
+    # Best overall model
     if sorted_results:
         best_row = sorted_results[0]
         print("\n" + "=" * 90)
-        print("🏆 BESTES MODELL GESAMT")
+        print("🏆 BEST OVERALL MODEL")
         print("=" * 90)
-        print(f"Modell: {best_row['model']}")
+        print(f"Model: {best_row['model']}")
         print(f"Experiment: {best_row['experiment']}")
         print(f"F1-Score (Mask): {best_row['f1_M']:.3f}")
         print(f"Precision (Mask): {best_row['precision_M']:.3f}")
@@ -409,21 +411,21 @@ def main():
                 project_root / "runs" / "segment" / best_row['model'] / 
                 best_timestamp / best_row['experiment'] / "weights" / "best.pt"
             )
-            print(f"\nModel-Pfad: {best_model_path}")
+            print(f"\nBest model path: {best_model_path}")
     
     print("\n" + "=" * 90)
-    print("✅ Vergleich abgeschlossen!")
+    print("✅ Comparison completed!")
     print("=" * 90)
-    print(f"\n💡 TIPPS ZUR INTERPRETATION:")
-    print("   - F1-Score: Balance zwischen Precision und Recall (höher = besser)")
-    print("   - mAP50: Mean Average Precision bei IoU=0.5 (wichtig für Detection)")
-    print("   - mAP50-95: Durchschnittliche mAP über IoU 0.5-0.95 (strenger)")
-    print("   - Precision: Wie viele erkannte Objekte sind korrekt?")
-    print("   - Recall: Wie viele Objekte wurden gefunden?")
-    print("\n   Für Segmentation sind Mask-Metriken (M) wichtiger als Box-Metriken (B)")
-    print("   Ein hoher F1-Score bei gleichzeitig hohem mAP50-95 ist ideal!")
-    print(f"\n📄 Detaillierte Ergebnisse in: {output_csv}")
-    print(f"📁 Alle Ausgaben gespeichert in: {evaluation_dir}")
+    print(f"\n💡 Tips for interpretation:")
+    print("   - F1-score: balance between Precision and Recall (higher = better)")
+    print("   - mAP50: mean average precision at IoU=0.5 (important for detection)")
+    print("   - mAP50-95: mean average precision averaged over IoU 0.5-0.95 (stricter)")
+    print("   - Precision: how many predicted objects are correct?")
+    print("   - Recall: how many ground-truth objects were found?")
+    print("\n   For segmentation, mask metrics (M) are more important than box metrics (B)")
+    print("   A high F1-score together with a high mAP50-95 is ideal!")
+    print(f"\n📄 Detailed results in: {output_csv}")
+    print(f"📁 All outputs saved in: {evaluation_dir}")
 
 
 if __name__ == "__main__":

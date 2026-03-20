@@ -34,7 +34,7 @@ EXPERIMENTS = ["no_augmentation", "baseline", "moderate_geom", "strong_geom", "s
 # Timestamps per model
 MODEL_TIMESTAMPS = {
     "yolo11n-seg_data_640_demo_day": "20260312_121409",
-    # Füge hier weitere Timestamps hinzu, wenn du mehr Modelle trainierst:
+    # Add more timestamps here if you train additional models:
     # "yolo26n-seg_data_640_demo_day": "TIMESTAMP_HIER",
 }
 
@@ -158,13 +158,15 @@ def evaluate_model(model_path: Path, model_name: str, experiment: str) -> Dict:
         # Retrieve timestamp for this model
         timestamp = MODEL_TIMESTAMPS.get(model_name)
         if not timestamp:
-            raise ValueError(f"Kein Timestamp für Modell '{model_name}' gefunden. Verfügbare: {list(MODEL_TIMESTAMPS.keys())}")
+            raise ValueError(
+                f"No timestamp found for model '{model_name}'. Available: {list(MODEL_TIMESTAMPS.keys())}"
+            )
         
-        # Lade Modell
+        # Load model
         model = YOLO(str(model_path))
         
         # Extract metrics from `results.csv` in the training directory
-        train_dir = model_path.parent.parent  # Von weights/best.pt zu experiment/
+        train_dir = model_path.parent.parent  # From weights/best.pt to the experiment folder
         results_csv = train_dir / "results.csv"
         
         # Try reading metrics from the training results directory first
@@ -172,14 +174,14 @@ def evaluate_model(model_path: Path, model_name: str, experiment: str) -> Dict:
         
         # Fallback: if the CSV is missing/empty, run a new validation pass
         if not metrics.get("f1_M"):
-            print(f"   🔄 Führe neue Validation durch (CSV nicht gefunden oder leer)...")
+            print("   🔄 Running a new validation pass (CSV not found or empty)...")
             val_args = VAL_ARGS.copy()
             # Store validation output in the evaluation directory
             val_args['project'] = str(project_root / "evaluation" / "demo_day")
             val_args['name'] = f"val_{model_name}_{experiment}"
             results = model.val(**val_args, verbose=False)
             
-            # Versuche Metriken direkt aus results zu extrahieren
+            # Try extracting metrics directly from `results`
             if hasattr(results, 'seg'):
                 seg = results.seg
                 p_m = safe_float(getattr(seg, 'p', None))
@@ -243,24 +245,24 @@ def main():
     print("=" * 90)
     print("📊 MODEL COMPARISON: data_640_demo_day Dataset")
     print("=" * 90)
-    print(f"Validation-Parameter: conf={VAL_ARGS['conf']}, iou={VAL_ARGS['iou']}")
+    print(f"Validation parameters: conf={VAL_ARGS['conf']}, iou={VAL_ARGS['iou']}")
     print(f"Dataset: {DATA_YAML}")
-    print(f"Timestamps pro Modell:")
+    print("Timestamps per model:")
     for model_name, timestamp in MODEL_TIMESTAMPS.items():
         print(f"  - {model_name}: {timestamp}")
     
     # Create evaluation directory for all outputs
     evaluation_dir = project_root / "evaluation" / "demo_day"
     evaluation_dir.mkdir(parents=True, exist_ok=True)
-    print(f"📁 Output-Verzeichnis: {evaluation_dir}")
+    print(f"📁 Output directory: {evaluation_dir}")
     
     all_results = []
     
-    # Evaluiere alle Modelle
+    # Evaluate all models
     for model_name in MODELS:
         timestamp = MODEL_TIMESTAMPS.get(model_name)
         if not timestamp:
-            print(f"⚠️ Kein Timestamp für {model_name} gefunden, überspringe...")
+            print(f"⚠️ No timestamp found for {model_name}, skipping...")
             continue
             
         for experiment in EXPERIMENTS:
@@ -274,7 +276,7 @@ def main():
             result = evaluate_model(model_path, model_name, experiment)
             all_results.append(result)
     
-    # Speichere als CSV im evaluation Verzeichnis
+    # Save as CSV in the evaluation directory
     combined_timestamp = "_".join(sorted(MODEL_TIMESTAMPS.values()))
     output_csv = evaluation_dir / f"model_comparison_demo_day_{combined_timestamp}.csv"
     
@@ -292,18 +294,18 @@ def main():
             row = {k: result.get(k) for k in fieldnames}
             writer.writerow(row)
     
-    print(f"\n📄 Vergleich gespeichert: {output_csv}")
+    print(f"\n📄 Comparison saved: {output_csv}")
     
     # Create a nice overview
     print("\n" + "=" * 90)
-    print("📊 VERGLEICHSÜBERSICHT - Demo Day Dataset")
+    print("📊 COMPARISON OVERVIEW - Demo Day dataset")
     print("=" * 90)
     
-    # Sortiere nach F1 (Mask) für bessere Übersicht
+    # Sort by F1 (Mask) for a clearer overview
     valid_results = [r for r in all_results if r.get("f1_M") is not None]
     sorted_results = sorted(valid_results, key=lambda x: x.get("f1_M", 0), reverse=True)
     
-    print("\n🏆 RANKING nach F1-Score (Mask):")
+    print("\n🏆 Ranking by F1-score (Mask):")
     print("-" * 90)
     print(f"{'Rank':<5} | {'Experiment':<20} | {'Model':<30} | {'F1':<6} | {'P':<6} | {'R':<6} | {'mAP50':<7}")
     print("-" * 90)
@@ -319,21 +321,21 @@ def main():
         rank_emoji = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f" {i}"
         print(f"{rank_emoji:<5} | {exp:<20} | {model:<30} | {f1:<6.3f} | {p:<6.3f} | {r_val:<6.3f} | {mAP50:<7.3f}")
     
-    # Nicht gefundene Experimente
+    # Missing experiments
     missing = [r for r in all_results if r.get("f1_M") is None]
     if missing:
-        print("\n⚠️ NICHT GEFUNDENE EXPERIMENTE:")
+        print("\n⚠️ Missing experiments:")
         print("-" * 90)
         for r in missing:
             print(f"   - {r['model']} / {r['experiment']}")
     
-    # Bestes Modell insgesamt
+    # Best overall model
     if sorted_results:
         best_row = sorted_results[0]
         print("\n" + "=" * 90)
-        print("🏆 BESTES MODELL")
+        print("🏆 BEST MODEL")
         print("=" * 90)
-        print(f"Modell: {best_row['model']}")
+        print(f"Model: {best_row['model']}")
         print(f"Experiment: {best_row['experiment']}")
         print(f"F1-Score (Mask): {best_row['f1_M']:.3f}")
         print(f"Precision (Mask): {best_row['precision_M']:.3f}")
@@ -348,13 +350,13 @@ def main():
                 project_root / "runs" / "segment" / best_row['model'] / 
                 best_timestamp / best_row['experiment'] / "weights" / "best.pt"
             )
-            print(f"\nModel-Pfad: {best_model_path}")
+            print(f"\nBest model path: {best_model_path}")
     
     print("\n" + "=" * 90)
-    print("✅ Vergleich abgeschlossen!")
+    print("✅ Comparison completed!")
     print("=" * 90)
-    print(f"\n📄 Detaillierte Ergebnisse in: {output_csv}")
-    print(f"📁 Alle Ausgaben gespeichert in: {evaluation_dir}")
+    print(f"\n📄 Detailed results in: {output_csv}")
+    print(f"📁 All outputs saved in: {evaluation_dir}")
 
 
 if __name__ == "__main__":

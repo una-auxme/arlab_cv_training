@@ -1,13 +1,13 @@
 # arlab_cv_training
 
-Trainieren und Vergleichen von YOLO-Segmentation-Varianten (Ultralytics) für unterschiedliche Datensätze und Augmentations-Settings. Dieses Projekt wurde speziell fuer das `ARLab` der Universitat Augsburg gebaut und im Rahmen der Entwicklung des `Zirbi`-Roboters verwendet.
+Train and compare YOLO segmentation variants (Ultralytics) for different datasets and augmentation settings. This project was built specifically for the `ARLab` at the University of Augsburg and developed in the context of the `Zirbi` robot.
 
 ## Quickstart
-- Lokales Setup/Training: `docs/startup-local.md`
-- SLURM Jobs: `docs/startup-slurm.md`
+- Local setup / training: `docs/startup-local.md`
+- SLURM jobs: `docs/startup-slurm.md`
 
-Python Entry Points:
+Python entry points:
 - `scripts/local/train_models.py`
 
-SLURM Job Scripts:
+SLURM job scripts:
 - `scripts/slurm/slurm_train_*.sh`, `scripts/slurm/slurm_compare_*.sh`

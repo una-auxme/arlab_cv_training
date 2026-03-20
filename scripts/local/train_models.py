@@ -211,7 +211,7 @@ def read_val_metrics(results_csv: Path) -> Dict[str, Optional[float]]:
 
 
 # ============================================================
-# 5) EIN RUN: TRAIN -> best.pt sichern -> VAL -> Metriken lesen
+# 5) One run: train -> save best.pt -> validate -> read metrics
 # ============================================================
 def run_experiment(idx: int, exp: Dict, weights_path: Path, model_name: str, dataset_name: str, run_timestamp: str, data_yaml: Path, total_experiments: int) -> Dict:
     name = exp["name"]
@@ -223,14 +223,14 @@ def run_experiment(idx: int, exp: Dict, weights_path: Path, model_name: str, dat
 
     t0 = time.time()
 
-    # Modell frisch laden (kein Weitertrainieren vom vorherigen Run)
+    # Load the model fresh (no continuing from the previous run)
     if not weights_path.exists():
-        raise FileNotFoundError(f"Weights nicht gefunden: {weights_path}")
+        raise FileNotFoundError(f"Weights not found: {weights_path}")
     
-    print(f"📦 Lade Modell von: {weights_path}")
+    print(f"📦 Loading model from: {weights_path}")
     model = YOLO(str(weights_path))
 
-    # Zeitstempel mit Unterstrichen für Ordnerstruktur
+    # Timestamp with underscores for folder structure
     timestamp_underscore = run_timestamp.replace("-", "_")
     
     # Ultralytics uses `project` and `name` to build the output folder.
@@ -242,7 +242,7 @@ def run_experiment(idx: int, exp: Dict, weights_path: Path, model_name: str, dat
     project_name = model_name  # -> runs/segment/{model_name}/
     unique_name = f"{timestamp_underscore}/{name}"
 
-    # Train-Args: Basis + Augmentationsparameter
+    # Train args: base settings + augmentation parameters
     train_args = dict(
         data=str(data_yaml),
         epochs=EPOCHS,
@@ -252,8 +252,8 @@ def run_experiment(idx: int, exp: Dict, weights_path: Path, model_name: str, dat
         device=DEVICE,
         project=project_name,  # -> runs/segment/{model_name}/
         name=unique_name,      # -> .../{timestamp_underscore}/{experiment}/
-        amp=True,  # AMP aktiviert (yolo26n.pt ist jetzt verfügbar)
-        plots=True,  # YOLO-Plots aktivieren (train_batch*.jpg, labels.jpg, confusion matrix, etc.)
+        amp=True,  # AMP enabled (yolo26n.pt is available)
+        plots=True,  # enable YOLO plots (train_batch*.jpg, labels.jpg, confusion matrix, etc.)
     )
     train_args.update(params)
 
@@ -264,32 +264,32 @@ def run_experiment(idx: int, exp: Dict, weights_path: Path, model_name: str, dat
     # 2) best.pt finden
     best_pt = train_dir / "weights" / "best.pt"
     if not best_pt.exists():
-        raise FileNotFoundError(f"best.pt nicht gefunden: {best_pt}")
+        raise FileNotFoundError(f"best.pt not found: {best_pt}")
 
     # 3) best.pt versioniert kopieren
     out_dir = project_root / "yolo_weights"
     out_dir.mkdir(exist_ok=True)
 
     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-    # model_name enthält bereits dataset_name (z.B. "yolo11n-seg_data_640"), daher nicht nochmal hinzufügen
+    # `model_name` already includes the dataset name (e.g. "yolo11n-seg_data_640"), so do not add it again
     exported = out_dir / f"{model_name}-demo-dataset-{name}-{ts}.pt"
     shutil.copy2(best_pt, exported)
-    print(f"✅ best.pt exportiert nach: {exported}")
+    print(f"✅ Exported best.pt to: {exported}")
 
-    # 4) VAL (fair: gleiche conf/iou/imgsz/batch für ALLE Runs)
+    # 4) Validation (fair: same conf/iou/imgsz/batch for all runs)
     print("🔍 Validation (fixed conf/iou) ...")
     val_model = YOLO(str(best_pt))
-    # Validation-Name: gleiche Struktur wie Training, aber mit VAL_ Präfix
-    # Ultralytics erstellt: runs/{project}/{task}/val/{name}/
+    # Validation name: same structure as training, but with a `VAL_` prefix
+    # Ultralytics creates: runs/{project}/{task}/val/{name}/
     val_name = f"{timestamp_underscore}/VAL_{name}"
     val_args = {**get_val_args(data_yaml), "project": project_name, "name": val_name}
     val_results = val_model.val(**val_args)
     val_dir = Path(val_results.save_dir)
 
-    # 5) Metriken extrahieren (zuerst aus val_results Objekt, dann Fallback auf CSV)
+    # 5) Extract metrics (first from the `val_results` object, then fallback to CSV)
     metrics = {}
     
-    # Versuche Metriken direkt aus val_results zu extrahieren
+    # Try extracting metrics directly from `val_results`
     if hasattr(val_results, "seg"):
         seg = val_results.seg
         p = safe_float(getattr(seg, "p", None))
@@ -304,14 +304,14 @@ def run_experiment(idx: int, exp: Dict, weights_path: Path, model_name: str, dat
             metrics["mAP50"] = mAP50
             metrics["mAP50-95"] = mAP50_95
     
-    # Fallback: Versuche aus results.csv zu lesen (falls vorhanden)
+    # Fallback: try reading from results.csv (if present)
     if not metrics.get("precision"):
         csv_metrics = read_val_metrics(val_dir / "results.csv")
         if csv_metrics.get("precision") is not None:
             metrics = csv_metrics
 
     dt = time.time() - t0
-    print(f"⏱ Dauer Run '{name}': {format_time(dt)}")
+    print(f"⏱ Duration for run '{name}': {format_time(dt)}")
 
     if metrics and metrics.get("precision") is not None:
         print(
@@ -322,7 +322,7 @@ def run_experiment(idx: int, exp: Dict, weights_path: Path, model_name: str, dat
             f"mAP50-95={metrics.get('mAP50-95'):.3f}"
         )
     else:
-        print("⚠️ Konnte keine Metriken aus results.csv lesen (Spaltennamen evtl. anders).")
+        print("⚠️ Could not read metrics from results.csv (column names may differ).")
 
     return {
         "name": name,
@@ -336,7 +336,7 @@ def run_experiment(idx: int, exp: Dict, weights_path: Path, model_name: str, dat
 
 
 # ============================================================
-# 6) MAIN: 3 Runs nacheinander + Summary CSV + bestes Modell
+# 6) Main: run experiments sequentially + summary CSV + best model
 # ============================================================
 def main():
     # Parse Command-Line Arguments
@@ -346,31 +346,31 @@ def main():
         type=str,
         choices=['yolo11n-seg', 'yolo26n-seg'],
         default='yolo11n-seg',
-        help='YOLO Modell auswählen: yolo11n-seg oder yolo26n-seg (default: yolo11n-seg)'
+        help='YOLO model choice: yolo11n-seg or yolo26n-seg (default: yolo11n-seg)'
     )
     parser.add_argument(
         '--dataset',
         type=str,
         choices=['data_420', 'data_640', 'fruit_dataset_640', 'data_640_demo_day'],
         default='data_640',
-        help='Dataset auswählen: data_420, data_640, fruit_dataset_640 oder data_640_demo_day (default: data_640)'
+        help='Dataset choice: data_420, data_640, fruit_dataset_640, or data_640_demo_day (default: data_640)'
     )
     parser.add_argument(
         '--augmentation',
         type=str,
         choices=['no_augmentation', 'baseline', 'moderate_geom', 'strong_geom', 'strong_geom_fruit', 'all'],
         default='all',
-        help='Augmentation-Typ auswählen: no_augmentation, baseline, moderate_geom, strong_geom, strong_geom_fruit oder all (default: all)'
+        help='Augmentation choice: no_augmentation, baseline, moderate_geom, strong_geom, strong_geom_fruit, or all (default: all)'
     )
     args = parser.parse_args()
     
-    # Filtere Experimente basierend auf --augmentation
+    # Filter experiments based on --augmentation
     if args.augmentation == 'all':
         experiments_to_run = EXPERIMENTS
     else:
         experiments_to_run = [exp for exp in EXPERIMENTS if exp['name'] == args.augmentation]
         if not experiments_to_run:
-            raise ValueError(f"Augmentation '{args.augmentation}' nicht gefunden!")
+            raise ValueError(f"Augmentation '{args.augmentation}' not found!")
     
     # Set dataset path
     dataset_name = args.dataset
@@ -384,29 +384,29 @@ def main():
     
     # Quick sanity checks to avoid running with invalid paths
     print("=" * 90)
-    print(f"🚀 YOLO Training mit Modell: {base_model_name}")
+    print(f"🚀 YOLO training with model: {base_model_name}")
     print(f"📊 Dataset: {dataset_name}")
     print(f"🔧 Augmentation: {args.augmentation} ({len(experiments_to_run)} Experiment(e))")
-    print(f"🏷️  Modell-Name (mit Dataset): {model_name}")
+    print(f"🏷️  Model name (with dataset): {model_name}")
     print("=" * 90)
     print("project_root:", project_root)
     print("WEIGHTS_PATH:", WEIGHTS_PATH, "exists:", WEIGHTS_PATH.exists())
     print("DATA_YAML   :", DATA_YAML, "exists:", DATA_YAML.exists())
     
-    # Prüfe, ob Weights vorhanden sind
+    # Check that the weights exist
     if not WEIGHTS_PATH.exists():
         WEIGHTS_PATH.parent.mkdir(parents=True, exist_ok=True)
         raise FileNotFoundError(
-            f"\n❌ FEHLER: Weights nicht gefunden: {WEIGHTS_PATH}\n\n"
-            f"📥 Bitte lade die {model_name} Weights manuell herunter:\n"
+            f"\n❌ Error: Weights not found: {WEIGHTS_PATH}\n\n"
+            f"📥 Please download the {model_name} weights manually:\n"
             f"   URL: https://github.com/ultralytics/assets/releases/download/v8.4.0/{model_name}.pt\n"
-            f"   Oder: https://github.com/ultralytics/assets/releases/download/v8.3.0/{model_name}.pt\n\n"
-            f"   Speichere die Datei nach: {WEIGHTS_PATH}\n\n"
-            f"   Beispiel-Befehl (auf einem System mit Internet):\n"
+            f"   Or: https://github.com/ultralytics/assets/releases/download/v8.3.0/{model_name}.pt\n\n"
+            f"   Save the file to: {WEIGHTS_PATH}\n\n"
+            f"   Example command (on a system with internet):\n"
             f"   wget https://github.com/ultralytics/assets/releases/download/v8.4.0/{model_name}.pt -O {WEIGHTS_PATH}\n"
         )
     
-    print(f"✅ Weights gefunden: {WEIGHTS_PATH} ({WEIGHTS_PATH.stat().st_size / 1024 / 1024:.1f} MB)")
+    print(f"✅ Weights found: {WEIGHTS_PATH} ({WEIGHTS_PATH.stat().st_size / 1024 / 1024:.1f} MB)")
     
     # Copy `yolo26n.pt` into the Ultralytics weights cache, if needed for AMP checks.
     yolo26n_pt = project_root / "yolo_weights" / "yolo26n.pt"
@@ -418,24 +418,24 @@ def main():
             cache_file = cache_dir / "yolo26n.pt"
             if not cache_file.exists():
                 shutil.copy2(yolo26n_pt, cache_file)
-                print(f"✅ yolo26n.pt in Ultralytics Cache kopiert: {cache_file}")
+                print(f"✅ yolo26n.pt copied into the Ultralytics cache: {cache_file}")
         except Exception as e:
-            print(f"⚠️ Konnte yolo26n.pt nicht in Cache kopieren: {e}")
+            print(f"⚠️ Could not copy yolo26n.pt into the cache: {e}")
     
     if not DATA_YAML.exists():
         raise FileNotFoundError(
-            f"data.yaml nicht gefunden: {DATA_YAML}\n"
-            f"Bitte stelle sicher, dass das Dataset-Verzeichnis '{dataset_name}' existiert und eine data.yaml enthält."
+            f"data.yaml not found: {DATA_YAML}\n"
+            f"Please ensure the dataset directory '{dataset_name}' exists and contains a data.yaml."
         )
 
-    # Eindeutiger Zeitstempel für diesen Training-Run (alle Experimente teilen sich denselben)
+    # Unique timestamp for this training run (all experiments share the same timestamp)
     run_timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    print(f"📅 Run-Timestamp: {run_timestamp}")
+    print(f"📅 Run timestamp: {run_timestamp}")
 
     overall0 = time.time()
     all_results = []
 
-    # Trainingsläufe (gefiltert nach --augmentation)
+    # Training runs (filtered by --augmentation)
     for i, exp in enumerate(experiments_to_run):
         all_results.append(run_experiment(i, exp, WEIGHTS_PATH, model_name, dataset_name, run_timestamp, DATA_YAML, len(experiments_to_run)))
 
@@ -443,11 +443,11 @@ def main():
         avg = elapsed / (i + 1)
         remaining = avg * (len(experiments_to_run) - (i + 1))
         print("-" * 90)
-        print(f"⏱ Gesamt bisher: {format_time(elapsed)} | ⏳ Rest (≈): {format_time(remaining)}")
+        print(f"⏱ Total so far: {format_time(elapsed)} | ⏳ Remaining (~): {format_time(remaining)}")
         print("-" * 90)
 
     # -----------------------
-    # Summary CSV (1 Zeile pro Run) -> für Excel/Präsi
+    # Summary CSV (1 row per run) -> for Excel/presentation
     # -----------------------
     out_dir = project_root / "yolo_weights"
     out_dir.mkdir(exist_ok=True)
@@ -469,17 +469,17 @@ def main():
                 str(r["exported"]),
             ])
 
-    print(f"\n📄 Summary CSV gespeichert: {summary_csv}")
+    print(f"\n📄 Summary CSV saved: {summary_csv}")
 
     # -----------------------
-    # Bestes Modell nach Val-F1 auswählen
+    # Select the best model by validation F1
     # -----------------------
     best_name = None
     best_f1 = float("-inf")
     best_pt = None
 
     print("\n" + "#" * 90)
-    print("📊 SUMMARY (nur val() zählt)")
+    print("📊 SUMMARY (only val() matters)")
     print("#" * 90)
 
     for r in all_results:
@@ -495,14 +495,14 @@ def main():
     if best_pt is not None:
         stable = out_dir / f"{model_name}-demo-dataset-BEST-overall.pt"
         shutil.copy2(best_pt, stable)
-        print("\n🏆 BEST (nach Val-F1)")
+        print("\n🏆 BEST (based on validation F1)")
         print(f"   Name: {best_name}")
         print(f"   F1  : {best_f1:.3f}")
-        print(f"   Gespeichert als: {stable}")
+        print(f"   Saved as: {stable}")
     else:
-        print("\n⚠️ Konnte kein bestes Modell bestimmen (F1 nicht verfügbar).")
+        print("\n⚠️ Could not determine the best model (F1 not available).")
 
-    print(f"\n🎉 Fertig. Gesamtzeit: {format_time(time.time() - overall0)}")
+    print(f"\n🎉 Done. Total runtime: {format_time(time.time() - overall0)}")
 
 
 if __name__ == "__main__":

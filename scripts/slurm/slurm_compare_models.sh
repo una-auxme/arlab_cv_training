@@ -10,7 +10,7 @@
 # Evaluation benötigt weniger Memory als Training
 #SBATCH --mem=16G
 
-# CPU cores per task (für DataLoader num_workers)
+# CPU cores per task (for DataLoader num_workers)
 #SBATCH --cpus-per-task=8
 
 # Request GPU (1×Nvidia A100)
@@ -22,7 +22,7 @@
 # Send mail to this address. Fill in valid mail address or delete this line.
 #SBATCH --mail-user=aleksander1.michalak@uni-a.de
 
-# Timelimit (Evaluation ist schneller als Training, 1 Stunde sollte reichen)
+# Timelimit (evaluation is faster than training; 1 hour should be enough)
 #SBATCH --time=1:00:00
 
 # Set number of OpenMP threads (1 pro Worker, um Over-subscription zu vermeiden)
@@ -30,7 +30,7 @@ export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
 
-# Output und Error Logs:
+# Output and error logs:
 #SBATCH --output=/hpc/gpfs2/home/u/michalek/arlab_cv_training/logs/comparison/compare_models_%j.out
 #SBATCH --error=/hpc/gpfs2/home/u/michalek/arlab_cv_training/logs/comparison/compare_models_%j.err
 

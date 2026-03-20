@@ -1,36 +1,36 @@
-# Structure Status & Target (Punkt 2/3/4)
+# Structure Status & Target (points 2/3/4)
 
-## Aktueller Stand
-1. **Punkt 2 – Struktur/Nachvollziehbarkeit**
-   - Code liegt aktuell im Repo-Root:
+## Current status
+1. **Point 2 – structure / traceability**
+   - Code currently lives in the repo root:
      - `train_models.py`
      - `compare_models.py`
      - `compare_models_demo_day.py`
-   - Einstieg/Übersicht für neue Teammitglieder existiert primär über die Guides in `docs/`.
-2. **Punkt 3 – Getrennte Struktur Local vs. SLURM**
-   - Im Dateisystem gibt es derzeit keine getrennten Ordner für Local vs. SLURM.
-   - Es gibt aber getrennte Doku:
+   - Onboarding / overview for new team members is mainly provided through the guides in `docs/`.
+2. **Point 3 – separated Local vs. SLURM structure**
+   - In the filesystem, there are currently no separate folders for Local vs. SLURM.
+   - Documentation is separated instead:
      - `docs/startup-local.md`
      - `docs/startup-slurm.md`
-3. **Punkt 4 – Readmes + Startup guides**
-   - `README.md` und die Startup-Guides existieren bereits.
-   - Nach einer eventuellen Struktur-Umstellung müssen Pfade/Beispielkommandos in diesen Dokumenten angepasst werden.
+3. **Point 4 – READMEs + startup guides**
+   - `README.md` and the startup guides already exist.
+   - After any structure change, paths / example commands in these documents may need to be updated.
 
-## Zielbild (minimal-invasiv)
-- **Entry Points bleiben klar**:
-  - Root-`README.md` als Einstieg
-  - `docs/startup-local.md` und `docs/startup-slurm.md` als konkrete Startanleitungen
-- **Ordnertrennung Local vs. SLURM im Dateisystem**:
-  - `scripts/local/` enthält die lokalen Python-Entry-Points (Training/Compare)
-  - `scripts/slurm/` enthält die SLURM Job-Skripte (`sbatch ...`)
-- **Minimaler Umbau**:
-  - Keine tiefen Refactors der Python-Logik.
-  - Nur Moves + Pfad-Anpassungen in SLURM-Skripten und ggf. in Docs.
+## Target state (minimal-invasiveness)
+- **Entry points stay clear**
+  - Root `README.md` as the entry point
+  - `docs/startup-local.md` and `docs/startup-slurm.md` as concrete starting guides
+- **Local vs. SLURM separation in the filesystem**
+  - `scripts/local/` contains the local Python entry points (training / comparison)
+  - `scripts/slurm/` contains the SLURM job scripts (`sbatch ...`)
+- **Minimal refactoring**
+  - No deep refactors of the Python logic
+  - Only moves + path updates in SLURM scripts and, if needed, in docs
 
-### Konkretes Minimal-Zielbild (empfohlen)
-- `scripts/local/train_models.py` (Local Training)
-- `scripts/local/compare_models.py` (Local Vergleich/Evaluation)
-- `scripts/local/compare_models_demo_day.py` (Local Vergleich/Evaluation für Demo Day)
-- `scripts/slurm/slurm_train_*.sh` (SLURM Training Jobs)
-- `scripts/slurm/slurm_compare_*.sh` (SLURM Comparison Jobs)
+### Concrete minimal target (recommended)
+- `scripts/local/train_models.py` (Local training)
+- `scripts/local/compare_models.py` (Local comparison/evaluation)
+- `scripts/local/compare_models_demo_day.py` (Local comparison/evaluation for Demo Day)
+- `scripts/slurm/slurm_train_*.sh` (SLURM training jobs)
+- `scripts/slurm/slurm_compare_*.sh` (SLURM comparison jobs)
 

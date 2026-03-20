@@ -3,9 +3,9 @@
 This folder contains the Python entry points that can be run directly on a workstation/login node (no SLURM wrapper).
 
 ## Contents
-- [1) `train_models.py`](#train-models)
-- [2) `compare_models.py`](#compare-models)
-- [3) `compare_models_demo_day.py`](#compare-models-demo-day)
+- [1) train_models.py](#train-models)
+- [2) compare_models.py](#compare-models)
+- [3) compare_models_demo_day.py](#compare-models-demo-day)
 - [4) Quick smoke test (no training)](#smoke-test)
 
 <a id="train-models"></a>
