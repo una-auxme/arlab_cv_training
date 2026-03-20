@@ -1,0 +1,50 @@
+# Dev env
+.venv/
+
+# External datasets (handled outside the repo)
+data_*/
+fruit_dataset_*/
+fruits_testset/
+
+# Pretrained weights / exports (not versioned here)
+weights/
+yolo_weights/
+
+# Logs + SLURM output (run-specific)
+logs/
+slurm-*.out
+slurm-*.err
+
+# Caches (run-specific)
+*.cache
+**/*.cache
+
+# macOS metadata
+__MACOSX/
+**/.DS_Store
+
+# Ultralytics run artifacts:
+# We version only the selected, reviewable outputs.
+runs/
+!runs/
+
+# Allow traversal into the weights folder so we can unignore the checkpoint files.
+!runs/**/weights/
+!runs/**/weights/*.pt
+
+# Allow small run metadata that is useful for review.
+!runs/**/results.csv
+!runs/**/args.yaml
+!runs/STRUKTUR_BEISPIEL.md
+
+# Belt-and-suspenders: never version run plots/images.
+runs/**/*.jpg
+runs/**/*.jpeg
+runs/**/*.png
+runs/**/*.webp
+runs/**/labels.jpg
+runs/**/confusion_matrix*.png
+runs/**/F1_curve*.png
+runs/**/P_curve*.png
+runs/**/R_curve*.png
+runs/**/results.png
