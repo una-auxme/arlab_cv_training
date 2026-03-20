@@ -34,16 +34,16 @@ export NUMEXPR_NUM_THREADS=1
 #SBATCH --output=/hpc/gpfs2/home/u/michalek/arlab_cv_training/logs/comparison/compare_models_%j.out
 #SBATCH --error=/hpc/gpfs2/home/u/michalek/arlab_cv_training/logs/comparison/compare_models_%j.err
 
-# Wechsle ins Arbeitsverzeichnis (wichtig für relative Pfade im Skript)
+# Change to the repo working directory (important for relative paths in the Python script)
 cd /hpc/gpfs2/home/u/michalek/arlab_cv_training
 
-# Erstelle logs-Verzeichnis falls nicht vorhanden
+# Create logs directory if it doesn't exist
 mkdir -p logs/comparison
 
-# Aktiviere venv
+# Activate virtual environment
 source .venv/bin/activate
 
-# Führe das Vergleichsskript aus
-# Das Skript evaluiert alle trainierten Modelle (yolo11n-seg und yolo26n-seg)
-# mit allen 4 Augmentation-Varianten und erstellt eine Vergleichstabelle
+# Run the model comparison script.
+# It evaluates all trained models (yolo11n-seg and yolo26n-seg) across the 4 augmentation variants
+# and writes a comparison table.
 srun python3 scripts/local/compare_models.py

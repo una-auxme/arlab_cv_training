@@ -1,8 +1,8 @@
 """
-Vergleicht alle trainierten Modelle mit unterschiedlichen Augmentation-Einstellungen.
+Compare trained YOLO segmentation models across augmentation experiments.
 
-Lädt alle best.pt Modelle, evaluiert sie auf dem Validation-Set mit fixen Parametern
-und erstellt eine Vergleichstabelle mit allen wichtigen Metriken.
+The script loads `best.pt` checkpoints, runs evaluation on the validation set with fixed
+parameters, and writes a comparison table with all important metrics.
 """
 
 import csv
@@ -10,30 +10,30 @@ from pathlib import Path
 from typing import Dict, Optional, List
 from ultralytics import YOLO
 
-# Projekt-Root: befindet sich im Repo-Root, die Datei liegt aber in scripts/local/
+# Project root: repository root (this file lives in scripts/local/)
 project_root = Path(__file__).resolve().parents[2]
 DATA_YAML = project_root / "data_640_demo_day" / "data.yaml"
 
-# Validation-Parameter (müssen identisch sein für fairen Vergleich)
+# Validation parameters (kept identical for a fair comparison)
 VAL_ARGS = dict(
     data=str(DATA_YAML),
     imgsz=640,
     batch=16,
     device=0,
-    conf=0.25,      # Feste Conf-Schwelle
-    iou=0.50,       # Feste IoU-Schwelle
+    conf=0.25,      # fixed confidence threshold
+    iou=0.50,       # fixed IoU threshold
     split="val",
-    save_json=False,  # Keine JSON-Ausgabe
-    plots=False,     # Keine Plots (schneller)
+    save_json=False,  # no JSON output
+    plots=False,     # no plots (faster)
 )
 
-# Modelle und Experimente
-# WICHTIG: Modellnamen müssen mit _fruit_dataset_640 enden, da die Ordner so benannt sind
+# Models and experiments
+# IMPORTANT: model names must end with `_fruit_dataset_640` because those folders are named that way.
 # MODELS = ["yolo11n-seg_fruit_dataset_640", "yolo11n-seg_data_640_demo_day", "yolo26n-seg_fruit_dataset_640"]
 MODELS = ["yolo11n-seg_fruit_dataset_640", "yolo11n-seg_data_640_demo_day"]
 EXPERIMENTS = ["no_augmentation", "baseline", "moderate_geom", "strong_geom", "strong_geom_fruit"]
 
-# Timestamps pro Modell (unterschiedlich für jedes Modell)
+# Timestamps per model (different for each model)
 MODEL_TIMESTAMPS = {
     "yolo11n-seg_fruit_dataset_640": "20260128_190716",
     "yolo26n-seg_fruit_dataset_640": "20260128_193214",
@@ -50,7 +50,7 @@ def safe_float(x: any) -> Optional[float]:
 
 
 def compute_f1(p: Optional[float], r: Optional[float]) -> Optional[float]:
-    """F1 aus Precision und Recall."""
+    """Compute F1 from precision and recall."""
     if p is None or r is None:
         return None
     if p + r == 0:
@@ -60,9 +60,10 @@ def compute_f1(p: Optional[float], r: Optional[float]) -> Optional[float]:
 
 def find_col(keys: List[str], candidates: List[str]) -> Optional[str]:
     """
-    Findet eine Spalte in results.csv.
-    Ultralytics-Spaltennamen können je nach Version leicht variieren.
-    Deshalb matchen wir per substring (case-insensitive).
+    Find a column in `results.csv`.
+
+    Ultralytics column names can vary slightly between versions, so we match by substring
+    (case-insensitive).
     """
     for cand in candidates:
         cl = cand.lower()
@@ -74,10 +75,10 @@ def find_col(keys: List[str], candidates: List[str]) -> Optional[str]:
 
 def read_val_metrics(results_csv: Path) -> Dict[str, Optional[float]]:
     """
-    Liest results.csv aus dem val()-Run und extrahiert Maskenmetriken:
+    Read `results.csv` from a `val()` run and extract mask metrics:
     - precision(M), recall(M)
     - segm mAP50, segm mAP50-95
-    und berechnet F1.
+    Then compute F1.
     """
     if not results_csv.exists():
         return {}
@@ -155,12 +156,12 @@ def evaluate_model(model_path: Path, model_name: str, experiment: str) -> Dict:
         }
     
     try:
-        # Hole Timestamp für dieses Modell
+        # Retrieve timestamp for this model
         timestamp = MODEL_TIMESTAMPS.get(model_name)
         if not timestamp:
             raise ValueError(f"Kein Timestamp für Modell '{model_name}' gefunden. Verfügbare: {list(MODEL_TIMESTAMPS.keys())}")
         
-        # Validiere dass model_path innerhalb der erlaubten Verzeichnisse liegt
+        # Validate that `model_path` is inside the expected runs directory
         expected_base = project_root / "runs" / "segment" / model_name / timestamp
         if not str(model_path).startswith(str(expected_base)):
             raise ValueError(f"Model-Pfad außerhalb der erlaubten Verzeichnisse: {model_path}")
@@ -168,18 +169,18 @@ def evaluate_model(model_path: Path, model_name: str, experiment: str) -> Dict:
         # Lade Modell
         model = YOLO(str(model_path))
         
-        # Extrahiere Metriken aus results.csv im Training-Verzeichnis
-        # Struktur: runs/segment/{model_name}/{timestamp}/{experiment}/results.csv
+        # Extract metrics from `results.csv` in the training directory.
+        # Expected structure: runs/segment/{model_name}/{timestamp}/{experiment}/results.csv
         # model_path ist: runs/segment/{model_name}/{timestamp}/{experiment}/weights/best.pt
         train_dir = model_path.parent.parent  # Von weights/best.pt zu experiment/
         
-        # Validiere dass train_dir innerhalb der erlaubten Verzeichnisse liegt
+        # Validate that `train_dir` is inside the expected runs directory
         if not str(train_dir).startswith(str(expected_base)):
             raise ValueError(f"Train-Dir außerhalb der erlaubten Verzeichnisse: {train_dir}")
         
         results_csv = train_dir / "results.csv"
         
-        # Versuche zuerst aus Training-Verzeichnis zu lesen
+        # Try reading metrics from the training results directory first
         metrics = read_val_metrics(results_csv)
         
         # Fallback: Falls CSV nicht existiert oder leer, führe neue Validation durch
@@ -262,7 +263,7 @@ def main():
     for model_name, timestamp in MODEL_TIMESTAMPS.items():
         print(f"  - {model_name}: {timestamp}")
     
-    # Erstelle evaluation Verzeichnis für alle Ausgaben
+    # Create evaluation directory for all outputs
     evaluation_dir = project_root / "evaluation"
     evaluation_dir.mkdir(exist_ok=True)
     print(f"📁 Output-Verzeichnis: {evaluation_dir}")
@@ -277,15 +278,15 @@ def main():
             continue
             
         for experiment in EXPERIMENTS:
-            # Finde best.pt Modell
-            # Struktur: runs/segment/{model_name}/{timestamp}/{experiment}/weights/best.pt
-            # WICHTIG: Nur Daten aus den spezifizierten Verzeichnissen verwenden
+            # Find the `best.pt` checkpoint for this run/experiment
+            # Expected structure: runs/segment/{model_name}/{timestamp}/{experiment}/weights/best.pt
+            # IMPORTANT: only use runs from the configured folders/timestamps
             model_path = (
                 project_root / "runs" / "segment" / model_name / 
                 timestamp / experiment / "weights" / "best.pt"
             )
             
-            # Validiere dass der Pfad innerhalb der erlaubten Verzeichnisse liegt
+            # Validate that the path is inside the expected runs directory
             expected_base = project_root / "runs" / "segment" / model_name / timestamp
             if not str(model_path).startswith(str(expected_base)):
                 raise ValueError(f"Pfad außerhalb der erlaubten Verzeichnisse: {model_path}")
@@ -314,7 +315,7 @@ def main():
     
     print(f"\n📄 Vergleich gespeichert: {output_csv}")
     
-    # Erstelle schöne Übersicht
+    # Create a nice overview
     print("\n" + "=" * 90)
     print("📊 VERGLEICHSÜBERSICHT")
     print("=" * 90)
@@ -401,7 +402,7 @@ def main():
         print(f"mAP50 (Mask): {best_row['mAP50_M']:.3f}")
         print(f"mAP50-95 (Mask): {best_row['mAP50-95_M']:.3f}")
         
-        # Pfad zum besten Modell
+        # Path to the best model
         best_timestamp = MODEL_TIMESTAMPS.get(best_row['model'])
         if best_timestamp:
             best_model_path = (

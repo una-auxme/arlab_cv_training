@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # ============================================================
-# Model Comparison für data_640_demo_day Dataset
+# Model comparison for the `data_640_demo_day` dataset
 # ============================================================
 
 #SBATCH --job-name=compare-demo-day

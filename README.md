@@ -1,8 +1,6 @@
 # arlab_cv_training
 
-Trainieren und Vergleichen von YOLO-Segmentation-Varianten (Ultralytics) für unterschiedliche Datensätze und Augmentations-Settings.
-
-Dieses Projekt wurde speziell fuer das `ARLab` der Universitat Augsburg gebaut und im Rahmen der Entwicklung des `Zirbi`-Roboters verwendet.
+Trainieren und Vergleichen von YOLO-Segmentation-Varianten (Ultralytics) für unterschiedliche Datensätze und Augmentations-Settings. Dieses Projekt wurde speziell fuer das `ARLab` der Universitat Augsburg gebaut und im Rahmen der Entwicklung des `Zirbi`-Roboters verwendet.
 
 ## Quickstart
 - Lokales Setup/Training: `docs/startup-local.md`

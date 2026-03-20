@@ -2,6 +2,13 @@
 
 This folder contains the Python entry points that can be run directly on a workstation/login node (no SLURM wrapper).
 
+## Contents
+- [1) `train_models.py`](#train-models)
+- [2) `compare_models.py`](#compare-models)
+- [3) `compare_models_demo_day.py`](#compare-models-demo-day)
+- [4) Quick smoke test (no training)](#smoke-test)
+
+<a id="train-models"></a>
 ## 1) `train_models.py` (training + validation + export)
 
 Trains Ultralytics YOLO segmentation models for a chosen dataset and augmentation setup, runs a validation step, and exports the best checkpoint into `yolo_weights/`.
@@ -57,6 +64,7 @@ Supported options:
 
 `train_models.py` uses a fixed `EPOCHS = 5000` inside the script (there is no CLI flag for epochs). Training can therefore be expensive.
 
+<a id="compare-models"></a>
 ## 2) `compare_models.py` (multi-model, augmentation comparison)
 
 Evaluates multiple trained runs (expects the `runs/segment/...` layout produced by `train_models.py`) and writes a comparison table into `evaluation/`.
@@ -74,6 +82,7 @@ python3 scripts/local/compare_models.py
   - `runs/segment/{model_name}/{timestamp}/{experiment}/weights/best.pt`
 - If you trained new runs after the timestamps recorded in `MODEL_TIMESTAMPS`, you may need to update that mapping in the script.
 
+<a id="compare-models-demo-day"></a>
 ## 3) `compare_models_demo_day.py` (demo-day only comparison)
 
 Same idea as `compare_models.py`, but focused on the `data_640_demo_day` dataset.
@@ -84,6 +93,7 @@ Same idea as `compare_models.py`, but focused on the `data_640_demo_day` dataset
 python3 scripts/local/compare_models_demo_day.py
 ```
 
+<a id="smoke-test"></a>
 ## 4) Quick smoke test (no training)
 
 This only checks that Python files parse correctly:

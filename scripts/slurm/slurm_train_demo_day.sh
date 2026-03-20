@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # ============================================================
-# YOLO11n-seg Training auf data_640_demo_day mit strong_geom_fruit
+# YOLO11n-seg training on `data_640_demo_day` with `strong_geom_fruit`
 # ============================================================
 
 #SBATCH --job-name=yolo11-demo-day

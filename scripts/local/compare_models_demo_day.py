@@ -1,8 +1,8 @@
 """
-Vergleicht alle trainierten Modelle für das data_640_demo_day Dataset.
+Compare trained YOLO segmentation models for the `data_640_demo_day` dataset.
 
-Lädt alle best.pt Modelle, evaluiert sie auf dem Validation-Set mit fixen Parametern
-und erstellt eine Vergleichstabelle mit allen wichtigen Metriken.
+The script loads `best.pt` checkpoints, evaluates them on the validation set using fixed
+parameters, and writes a comparison table with the main metrics.
 """
 
 import csv
@@ -10,28 +10,28 @@ from pathlib import Path
 from typing import Dict, Optional, List
 from ultralytics import YOLO
 
-# Projekt-Root: befindet sich im Repo-Root, die Datei liegt aber in scripts/local/
+# Project root: repository root (this file lives in scripts/local/)
 project_root = Path(__file__).resolve().parents[2]
 DATA_YAML = project_root / "data_640_demo_day" / "data.yaml"
 
-# Validation-Parameter (müssen identisch sein für fairen Vergleich)
+# Validation parameters (kept identical for a fair comparison)
 VAL_ARGS = dict(
     data=str(DATA_YAML),
     imgsz=640,
     batch=16,
     device=0,
-    conf=0.25,      # Feste Conf-Schwelle
-    iou=0.50,       # Feste IoU-Schwelle
+    conf=0.25,      # fixed confidence threshold
+    iou=0.50,       # fixed IoU threshold
     split="val",
-    save_json=False,  # Keine JSON-Ausgabe
-    plots=True,      # Plots für Visualisierung
+    save_json=False,  # no JSON output
+    plots=True,      # plots for visualization
 )
 
-# Modelle und Experimente für demo_day Dataset
+# Models and experiments for the demo_day dataset
 MODELS = ["yolo11n-seg_data_640_demo_day"]
 EXPERIMENTS = ["no_augmentation", "baseline", "moderate_geom", "strong_geom", "strong_geom_fruit"]
 
-# Timestamps pro Modell
+# Timestamps per model
 MODEL_TIMESTAMPS = {
     "yolo11n-seg_data_640_demo_day": "20260312_121409",
     # Füge hier weitere Timestamps hinzu, wenn du mehr Modelle trainierst:
@@ -48,7 +48,7 @@ def safe_float(x: any) -> Optional[float]:
 
 
 def compute_f1(p: Optional[float], r: Optional[float]) -> Optional[float]:
-    """F1 aus Precision und Recall."""
+    """Compute F1 from precision and recall."""
     if p is None or r is None:
         return None
     if p + r == 0:
@@ -58,9 +58,10 @@ def compute_f1(p: Optional[float], r: Optional[float]) -> Optional[float]:
 
 def find_col(keys: List[str], candidates: List[str]) -> Optional[str]:
     """
-    Findet eine Spalte in results.csv.
-    Ultralytics-Spaltennamen können je nach Version leicht variieren.
-    Deshalb matchen wir per substring (case-insensitive).
+    Find a column in `results.csv`.
+
+    Ultralytics column names can vary slightly between versions, so we match by substring
+    (case-insensitive).
     """
     for cand in candidates:
         cl = cand.lower()
@@ -72,10 +73,11 @@ def find_col(keys: List[str], candidates: List[str]) -> Optional[str]:
 
 def read_val_metrics(results_csv: Path) -> Dict[str, Optional[float]]:
     """
-    Liest results.csv aus dem val()-Run und extrahiert Maskenmetriken:
+    Read `results.csv` from a `val()` run and extract mask metrics:
     - precision(M), recall(M)
     - segm mAP50, segm mAP50-95
-    und berechnet F1.
+
+    Then compute F1.
     """
     if not results_csv.exists():
         return {}
@@ -89,13 +91,13 @@ def read_val_metrics(results_csv: Path) -> Dict[str, Optional[float]]:
 
     keys = list(reader.fieldnames)
 
-    # Kandidatenlisten (Masken zuerst, dann fallback)
+    # Candidate columns (masks first, then fallback)
     col_p_m = find_col(keys, ["metrics/precision(m)", "metrics/precision"])
     col_r_m = find_col(keys, ["metrics/recall(m)", "metrics/recall"])
     col_m50_m = find_col(keys, ["metrics/segm_map50", "metrics/segm_mAP50", "metrics/map50"])
     col_m5095_m = find_col(keys, ["metrics/segm_map50-95", "metrics/segm_mAP50-95", "metrics/map50-95"])
     
-    # Box-Metriken
+    # Box metrics
     col_p_b = find_col(keys, ["metrics/precision(b)", "metrics/precision"])
     col_r_b = find_col(keys, ["metrics/recall(b)", "metrics/recall"])
     col_m50_b = find_col(keys, ["metrics/box_map50", "metrics/box_mAP50", "metrics/map50"])
@@ -153,7 +155,7 @@ def evaluate_model(model_path: Path, model_name: str, experiment: str) -> Dict:
         }
     
     try:
-        # Hole Timestamp für dieses Modell
+        # Retrieve timestamp for this model
         timestamp = MODEL_TIMESTAMPS.get(model_name)
         if not timestamp:
             raise ValueError(f"Kein Timestamp für Modell '{model_name}' gefunden. Verfügbare: {list(MODEL_TIMESTAMPS.keys())}")
@@ -161,18 +163,18 @@ def evaluate_model(model_path: Path, model_name: str, experiment: str) -> Dict:
         # Lade Modell
         model = YOLO(str(model_path))
         
-        # Extrahiere Metriken aus results.csv im Training-Verzeichnis
+        # Extract metrics from `results.csv` in the training directory
         train_dir = model_path.parent.parent  # Von weights/best.pt zu experiment/
         results_csv = train_dir / "results.csv"
         
-        # Versuche zuerst aus Training-Verzeichnis zu lesen
+        # Try reading metrics from the training results directory first
         metrics = read_val_metrics(results_csv)
         
-        # Fallback: Falls CSV nicht existiert oder leer, führe neue Validation durch
+        # Fallback: if the CSV is missing/empty, run a new validation pass
         if not metrics.get("f1_M"):
             print(f"   🔄 Führe neue Validation durch (CSV nicht gefunden oder leer)...")
             val_args = VAL_ARGS.copy()
-            # Speichere Validation-Output im evaluation Verzeichnis
+            # Store validation output in the evaluation directory
             val_args['project'] = str(project_root / "evaluation" / "demo_day")
             val_args['name'] = f"val_{model_name}_{experiment}"
             results = model.val(**val_args, verbose=False)
@@ -192,7 +194,7 @@ def evaluate_model(model_path: Path, model_name: str, experiment: str) -> Dict:
                     metrics["mAP50_M"] = map50_m
                     metrics["mAP50-95_M"] = map5095_m
             
-            # Box-Metriken
+            # Box metrics
             if hasattr(results, 'box'):
                 box = results.box
                 metrics["precision_B"] = safe_float(getattr(box, 'p', None))
@@ -247,7 +249,7 @@ def main():
     for model_name, timestamp in MODEL_TIMESTAMPS.items():
         print(f"  - {model_name}: {timestamp}")
     
-    # Erstelle evaluation Verzeichnis für alle Ausgaben
+    # Create evaluation directory for all outputs
     evaluation_dir = project_root / "evaluation" / "demo_day"
     evaluation_dir.mkdir(parents=True, exist_ok=True)
     print(f"📁 Output-Verzeichnis: {evaluation_dir}")
@@ -262,8 +264,8 @@ def main():
             continue
             
         for experiment in EXPERIMENTS:
-            # Finde best.pt Modell
-            # Struktur: runs/segment/{model_name}/{timestamp}/{experiment}/weights/best.pt
+            # Find the `best.pt` checkpoint for this run/experiment
+            # Expected structure: runs/segment/{model_name}/{timestamp}/{experiment}/weights/best.pt
             model_path = (
                 project_root / "runs" / "segment" / model_name / 
                 timestamp / experiment / "weights" / "best.pt"
@@ -286,13 +288,13 @@ def main():
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for result in all_results:
-            # Nur relevante Felder schreiben
+            # Write only relevant fields
             row = {k: result.get(k) for k in fieldnames}
             writer.writerow(row)
     
     print(f"\n📄 Vergleich gespeichert: {output_csv}")
     
-    # Erstelle schöne Übersicht
+    # Create a nice overview
     print("\n" + "=" * 90)
     print("📊 VERGLEICHSÜBERSICHT - Demo Day Dataset")
     print("=" * 90)
@@ -339,7 +341,7 @@ def main():
         print(f"mAP50 (Mask): {best_row['mAP50_M']:.3f}")
         print(f"mAP50-95 (Mask): {best_row['mAP50-95_M']:.3f}")
         
-        # Pfad zum besten Modell
+        # Path to the best model
         best_timestamp = MODEL_TIMESTAMPS.get(best_row['model'])
         if best_timestamp:
             best_model_path = (

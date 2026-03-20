@@ -1,11 +1,9 @@
 """
-Trainiert 3 Varianten (baseline / moderate_geom / strong_geom) für demo-dataset Segmentation
-- 50 Epochen pro Run (schneller Vergleich)
-- ohne Mosaic
-- nach jedem Training: best.pt versioniert speichern
-- danach: sauberes model.val() mit fixen Parametern (conf/iou) -> fairer Vergleich
-- liest Maskenmetriken aus val/results.csv und berechnet F1
-- schreibt zusätzlich eine Summary-CSV (1 Zeile pro Run) für Excel/Präsi
+Train and evaluate YOLO segmentation models for augmentation experiments.
+
+This script runs multiple experiments (baseline / moderate_geom / strong_geom and fruit variant),
+performs a validation step with fixed conf/iou, exports `best.pt` into `yolo_weights/`,
+and writes a summary CSV (one row per experiment) for easy comparison.
 """
 
 import shutil
@@ -19,45 +17,45 @@ from typing import Dict, Optional, Any, List
 
 from ultralytics import YOLO
 
-# yolo26n.pt wird für AMP-Checks benötigt und wird automatisch in den Cache kopiert
+# yolo26n.pt is needed for AMP checks and can be copied into the Ultralytics weights cache.
 
 
 # ============================================================
-# 1) PFADE / SETTINGS
+# 1) PATHS / SETTINGS
 # ============================================================
 
-# Projekt-Root: befindet sich im Repo-Root, die Datei liegt aber in scripts/local/
+# Project root: repository root (this file lives in scripts/local/)
 project_root = Path(__file__).resolve().parents[2]
 
-# DATA_YAML wird dynamisch basierend auf --dataset Parameter gesetzt
+# DATA_YAML is set dynamically based on the --dataset argument
 
-# Trainingseinstellungen
+# Training settings
 EPOCHS = 5000
 IMGSZ = 640
-BATCH = 16          # RTX 3080: sicher. Wenn OOM: 4
-DEVICE = 0         # GPU. CPU wäre -1
+BATCH = 16          # RTX 3080: safe. If OOM: use 4
+DEVICE = 0          # GPU (CPU would be -1)
 PATIENCE = 100
 
 # ============================================================
-# 2) VAL-SETTINGS (wichtig: fix für alle Runs!)
+# 2) VAL SETTINGS (fixed for all runs)
 # ============================================================
-# Damit Precision/Recall/F1 fair vergleichbar sind, müssen conf/iou fix sein.
-# data wird dynamisch gesetzt
+# For a fair Precision/Recall/F1 comparison, conf/iou must be fixed.
+# data is set dynamically.
 def get_val_args(data_yaml: Path) -> dict:
     return dict(
         data=str(data_yaml),
         imgsz=IMGSZ,
         batch=BATCH,
         device=DEVICE,
-        conf=0.25,      # feste Conf-Schwelle (für P/R/F1 Vergleich!)
-        iou=0.50,       # feste IoU-Schwelle
+        conf=0.25,      # fixed confidence threshold (for P/R/F1 comparison)
+        iou=0.50,       # fixed IoU threshold
         split="val",
     )
 
 # ============================================================
-# 3) 3 EXPERIMENTE (ohne mosaic)
+# 3) 3 EXPERIMENTS (mosaic disabled)
 # ============================================================
-# Idee: nur GEOMETRIE variiert. Farbe bleibt realistisch aktiv.
+# Idea: vary geometry only; keep realistic color/lighting augmentation.
 EXPERIMENTS = [
     {
         "name": "no_augmentation",
@@ -66,13 +64,13 @@ EXPERIMENTS = [
     {
         "name": "baseline",
         "params": dict(
-            # Farb- / Beleuchtungsvariation
+            # Color / lighting variation
             hsv_h=0.03, hsv_s=0.6, hsv_v=0.5,
-            # leichte Geometrie
+            # Mild geometry
             fliplr=0.5,
             translate=0.1,
             scale=0.1,
-            # mosaic bewusst NICHT gesetzt
+            # mosaic intentionally NOT set
         ),
     },
     {
@@ -108,7 +106,7 @@ EXPERIMENTS = [
             translate=0.2,
             scale=0.25,      # Leicht reduziert von 0.3
             degrees=15.0,
-            # shear=5.0 ENTFERNEN - unpassend für Obst!
+            # shear=5.0 removed - not suitable for fruit
             perspective=0.0003,  # Leicht reduziert
         ),
     },
@@ -116,10 +114,10 @@ EXPERIMENTS = [
 
 
 # ============================================================
-# 4) HILFSFUNKTIONEN
+# 4) HELPER FUNCTIONS
 # ============================================================
 def format_time(seconds: float) -> str:
-    """Zeit in h/m/s formatieren."""
+    """Format seconds into h/m/s."""
     seconds = int(seconds)
     h = seconds // 3600
     m = (seconds % 3600) // 60
@@ -140,7 +138,7 @@ def safe_float(x: Any) -> Optional[float]:
 
 
 def compute_f1(p: Optional[float], r: Optional[float]) -> Optional[float]:
-    """F1 aus Precision und Recall."""
+    """Compute F1 from precision and recall."""
     if p is None or r is None:
         return None
     if p + r == 0:
@@ -150,9 +148,10 @@ def compute_f1(p: Optional[float], r: Optional[float]) -> Optional[float]:
 
 def find_col(keys: List[str], candidates: List[str]) -> Optional[str]:
     """
-    Findet eine Spalte in results.csv.
-    Ultralytics-Spaltennamen können je nach Version leicht variieren.
-    Deshalb matchen wir per substring (case-insensitive).
+    Find a column in `results.csv`.
+
+    Ultralytics column names can vary slightly between versions, so we match by substring
+    (case-insensitive).
     """
     for cand in candidates:
         cl = cand.lower()
@@ -164,10 +163,11 @@ def find_col(keys: List[str], candidates: List[str]) -> Optional[str]:
 
 def read_val_metrics(results_csv: Path) -> Dict[str, Optional[float]]:
     """
-    Liest results.csv aus dem val()-Run und extrahiert Maskenmetriken:
+    Read `results.csv` from a `val()` run and extract mask metrics:
     - precision(M), recall(M)
     - segm mAP50, segm mAP50-95
-    und berechnet F1.
+
+    Then compute F1.
     """
     if not results_csv.exists():
         return {}
@@ -181,7 +181,7 @@ def read_val_metrics(results_csv: Path) -> Dict[str, Optional[float]]:
 
     keys = list(reader.fieldnames)
 
-    # Kandidatenlisten (Masken zuerst, dann fallback)
+    # Candidate columns (masks first, then fallback)
     col_p = find_col(keys, ["metrics/precision(m)", "metrics/precision"])
     col_r = find_col(keys, ["metrics/recall(m)", "metrics/recall"])
     col_m50 = find_col(keys, ["metrics/segm_map50", "metrics/segm_mAP50", "metrics/map50"])
@@ -233,12 +233,13 @@ def run_experiment(idx: int, exp: Dict, weights_path: Path, model_name: str, dat
     # Zeitstempel mit Unterstrichen für Ordnerstruktur
     timestamp_underscore = run_timestamp.replace("-", "_")
     
-    # Ultralytics-Standardstruktur: runs/{project}/{task}/train/{name}/
-    # Für Segmentation ist task="segment" automatisch
-    # Wir setzen: project="yolo11n-seg", name="20260125_143000/no_augmentation"
-    # Ergebnis: runs/yolo11n-seg/segment/train/20260125_143000/no_augmentation/
-    # Die Modell-Unterscheidung ist im obersten Projekt-Ordner klar erkennbar
-    project_name = model_name  # -> runs/yolo11n-seg/ oder runs/yolo26n-seg/
+    # Ultralytics uses `project` and `name` to build the output folder.
+    # In this repo we expect segmentation runs under:
+    #   runs/segment/{model_name}/{timestamp}/{experiment}/...
+    # Here:
+    # - `project_name` selects the model/dataset group
+    # - `unique_name` encodes run timestamp (folder) and experiment name (subfolder)
+    project_name = model_name  # -> runs/segment/{model_name}/
     unique_name = f"{timestamp_underscore}/{name}"
 
     # Train-Args: Basis + Augmentationsparameter
@@ -249,8 +250,8 @@ def run_experiment(idx: int, exp: Dict, weights_path: Path, model_name: str, dat
         imgsz=IMGSZ,
         batch=BATCH,
         device=DEVICE,
-        project=project_name,  # -> runs/yolo11n-seg/ oder runs/yolo26n-seg/
-        name=unique_name,  # -> runs/{model_name}/segment/train/20260125_143000/no_augmentation/
+        project=project_name,  # -> runs/segment/{model_name}/
+        name=unique_name,      # -> .../{timestamp_underscore}/{experiment}/
         amp=True,  # AMP aktiviert (yolo26n.pt ist jetzt verfügbar)
         plots=True,  # YOLO-Plots aktivieren (train_batch*.jpg, labels.jpg, confusion matrix, etc.)
     )
@@ -371,17 +372,17 @@ def main():
         if not experiments_to_run:
             raise ValueError(f"Augmentation '{args.augmentation}' nicht gefunden!")
     
-    # Setze Dataset-Pfad
+    # Set dataset path
     dataset_name = args.dataset
     DATA_YAML = project_root / dataset_name / "data.yaml"
     
-    # Setze Weights-Pfad basierend auf Modell-Auswahl
+    # Set weights path based on model selection
     base_model_name = args.model
-    # Modell-Name mit Dataset: yolo11n-seg_data_640
+    # Model name with dataset: yolo11n-seg_data_640
     model_name = f"{base_model_name}_{dataset_name}"
     WEIGHTS_PATH = (project_root / "yolo_weights" / f"{base_model_name}.pt").resolve()
     
-    # Mini-Checks, damit du nicht mit falschen Pfaden losläufst
+    # Quick sanity checks to avoid running with invalid paths
     print("=" * 90)
     print(f"🚀 YOLO Training mit Modell: {base_model_name}")
     print(f"📊 Dataset: {dataset_name}")
@@ -407,7 +408,7 @@ def main():
     
     print(f"✅ Weights gefunden: {WEIGHTS_PATH} ({WEIGHTS_PATH.stat().st_size / 1024 / 1024:.1f} MB)")
     
-    # Kopiere yolo26n.pt in Ultralytics Cache, falls es für AMP-Checks benötigt wird
+    # Copy `yolo26n.pt` into the Ultralytics weights cache, if needed for AMP checks.
     yolo26n_pt = project_root / "yolo_weights" / "yolo26n.pt"
     if yolo26n_pt.exists():
         try:

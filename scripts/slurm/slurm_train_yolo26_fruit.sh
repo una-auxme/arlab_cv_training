@@ -34,16 +34,16 @@ export NUMEXPR_NUM_THREADS=1
 #SBATCH --output=/hpc/gpfs2/home/u/michalek/arlab_cv_training/logs/training/train_yolo26_fruit_%j.out
 #SBATCH --error=/hpc/gpfs2/home/u/michalek/arlab_cv_training/logs/training/train_yolo26_fruit_%j.err
 
-# Wechsle ins Arbeitsverzeichnis (wichtig für relative Pfade im Skript)
+# Change to the repo working directory (important for relative paths in the Python script)
 cd /hpc/gpfs2/home/u/michalek/arlab_cv_training
 
-# Erstelle logs-Verzeichnis falls nicht vorhanden
+# Create logs directory if it doesn't exist
 mkdir -p logs/training
 
-# Aktiviere venv
+# Activate virtual environment
 source .venv/bin/activate
 
-# Führe das YOLO Training aus mit yolo26n-seg Modell auf fruit_dataset_640
-# Das Skript trainiert 4 Experimente nacheinander (no_augmentation, baseline, moderate_geom, strong_geom)
-# --dataset: data_420, data_640 oder fruit_dataset_640
+# Run YOLO training with the `yolo26n-seg` model on `fruit_dataset_640`.
+# The script trains 4 experiments sequentially (no_augmentation, baseline, moderate_geom, strong_geom).
+# --dataset: data_420, data_640, or fruit_dataset_640
 srun python3 scripts/local/train_models.py --model yolo26n-seg --dataset fruit_dataset_640
