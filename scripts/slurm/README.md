@@ -57,3 +57,6 @@ Jobs expect the same dataset layout as local training: extract **`datasets.zip`*
 
 The `#SBATCH` parameters in these scripts were tuned for a **LICCA**-style setup (A100 GPU, `--gres=gpu:a100:1`, partition `epyc-gpu`) and write logs into `logs/...`. Other university clusters (or partitions) will differ—adjust the `#SBATCH` lines to match your site’s documentation.
 
+## Maintainer
+- Aleksander Michalak <aleksander1.michalak@uni-a.de>
+

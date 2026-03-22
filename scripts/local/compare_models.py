@@ -7,7 +7,7 @@ comparison table containing the most relevant mask and box metrics.
 The comparison is designed to be fair across experiments by using identical
 validation settings for all evaluated models.
 
-Maintainer:
+Maintainers:
     Meruna Yugarajah <m.yugarajah@gmail.com>
     Aleksander Michalak <aleksander1.michalak@uni-a.de>
 """

@@ -16,3 +16,7 @@ Python entry points:
 
 SLURM job scripts (cluster only):
 - `scripts/slurm/slurm_train_*.sh`, `scripts/slurm/slurm_compare_*.sh`
+
+## Maintainers
+- Meruna Yugarajah <m.yugarajah@gmail.com>
+- Aleksander Michalak <aleksander1.michalak@uni-a.de>

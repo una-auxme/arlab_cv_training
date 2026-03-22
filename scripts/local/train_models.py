@@ -5,7 +5,7 @@ This script runs multiple experiments (baseline / moderate_geom / strong_geom an
 performs a validation step with fixed conf/iou, exports `best.pt` into `yolo_weights/`,
 and writes a summary CSV (one row per experiment) for easy comparison.
 
-Maintainer:
+Maintainers:
     Meruna Yugarajah <m.yugarajah@gmail.com>
     Aleksander Michalak <aleksander1.michalak@uni-a.de>
 """

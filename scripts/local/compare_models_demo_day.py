@@ -3,6 +3,10 @@ Compare trained YOLO segmentation models for the `data_640_demo_day` dataset.
 
 The script loads `best.pt` checkpoints, evaluates them on the validation set using fixed
 parameters, and writes a comparison table with the main metrics.
+
+Maintainers:
+    Meruna Yugarajah <m.yugarajah@gmail.com>
+    Aleksander Michalak <aleksander1.michalak@uni-a.de>
 """
 
 import csv
