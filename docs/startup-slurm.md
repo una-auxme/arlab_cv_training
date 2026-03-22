@@ -1,5 +1,7 @@
 # Training Pipeline (SLURM)
 
+Most students and day-to-day use should follow **`docs/startup-local.md`** (local Python scripts). This page is for **optional** use on **batch clusters** with SLURM—for example the **LICCA** cluster at the University of Augsburg—where you submit GPU jobs instead of running training interactively on a laptop.
+
 ## 1) General pattern
 The repo contains ready-to-submit SLURM scripts (`scripts/slurm/slurm_train_*.sh`, `scripts/slurm/slurm_compare_*.sh`).
 They typically:
@@ -33,7 +35,8 @@ Examples:
   ```
 
 ## 4) Notes / prerequisites
-- SLURM scripts assume the dataset directories and `data.yaml` exist on disk.
+- Datasets: copy or clone the repo on the cluster, then extract **`datasets.zip`** from the repo root (same layout as local: dataset folders with `data.yaml` next to `scripts/`). See `docs/startup-local.md` section “Data (datasets)”.
+- SLURM jobs assume those dataset directories already exist on disk at the repo path used in the job.
 - `scripts/local/train_models.py` requires pretrained weights in `yolo_weights/`:
   - `yolo_weights/yolo11n-seg.pt` for `--model yolo11n-seg`
   - `yolo_weights/yolo26n-seg.pt` for `--model yolo26n-seg`

@@ -1,5 +1,7 @@
 # SLURM usage (scripts/slurm)
 
+**Primary training is via `scripts/local/`** (see `docs/startup-local.md`). The shell scripts here are **optional** and aimed at **SLURM clusters** (e.g. **LICCA** at the University of Augsburg) when you need scheduled GPU jobs.
+
 This folder contains pre-configured SLURM wrapper scripts.
 
 They typically:
@@ -36,6 +38,10 @@ Run any of the following `sbatch` commands:
   sbatch scripts/slurm/slurm_train_yolo.sh
   ```
 
+## Datasets
+
+Jobs expect the same dataset layout as local training: extract **`datasets.zip`** in the repo root on the cluster filesystem before running training. See `docs/startup-local.md` and `docs/startup-slurm.md`.
+
 ## Model comparison jobs
 
 - Compare multiple trained runs (main comparison script):
@@ -49,7 +55,5 @@ Run any of the following `sbatch` commands:
 
 ## Cluster-specific notes
 
-The `#SBATCH` parameters in these scripts assume an A100 GPU setup (`--gres=gpu:a100:1`, partition `epyc-gpu`) and output logs into `logs/...`.
-
-If your cluster differs, update the `#SBATCH` lines accordingly.
+The `#SBATCH` parameters in these scripts were tuned for a **LICCA**-style setup (A100 GPU, `--gres=gpu:a100:1`, partition `epyc-gpu`) and write logs into `logs/...`. Other university clusters (or partitions) will differ—adjust the `#SBATCH` lines to match your site’s documentation.
 

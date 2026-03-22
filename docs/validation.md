@@ -1,6 +1,6 @@
 # Validation (after the structure change)
 
-Goal: verify that the new folder structure for Local (`scripts/local/`) and SLURM (`scripts/slurm/`) correctly matches the workflow, without breaking the training/evaluation logic.
+Goal: verify that the new folder structure for Local (`scripts/local/`) and SLURM (`scripts/slurm/`) correctly matches the workflow, without breaking the training/evaluation logic. **Local checks (section 1) are what most users need.** SLURM sections apply only if you run jobs on a cluster (e.g. LICCA at the University of Augsburg).
 
 ## 1) Local (no GPU / no training)
 1. Syntax check of the Python entry points:
@@ -14,7 +14,9 @@ source .venv/bin/activate
 python3 scripts/local/train_models.py --help
 ```
 
-## 2) SLURM (no submit)
+## 2) SLURM (no submit, optional — cluster / LICCA)
+
+Skip this if you only use local training.
 1. Shell syntax check:
 ```bash
 bash -n scripts/slurm/*.sh
@@ -24,7 +26,7 @@ bash -n scripts/slurm/*.sh
 - The SLURM scripts `cd` into the repo root (`.../arlab_cv_training`)
 - The `srun python3 ...` calls point to `scripts/local/*.py`
 
-## 3) SLURM submit (only if prerequisites are satisfied)
+## 3) SLURM submit (optional — only on a cluster)
 Examples:
 ```bash
 sbatch scripts/slurm/slurm_train_yolo11.sh
@@ -33,5 +35,5 @@ sbatch scripts/slurm/slurm_compare_models.sh
 
 Prerequisites:
 - `yolo_weights/yolo11n-seg.pt` and `yolo_weights/yolo26n-seg.pt` exist
-- Dataset folders (including `data.yaml`) exist on disk (e.g. `data_640/data.yaml`)
+- `datasets.zip` extracted in the repo root so dataset folders (including `data.yaml`) exist on disk (e.g. `data_640/data.yaml`); see `docs/startup-local.md`
 

@@ -1,6 +1,6 @@
 # Local usage (scripts/local)
 
-This folder contains the Python entry points that can be run directly on a workstation/login node (no SLURM wrapper).
+This folder contains the **primary** Python entry points: run them on your own machine or an interactive session. For SLURM batch jobs on clusters such as **LICCA** (University of Augsburg), see `scripts/slurm/` and `docs/startup-slurm.md`.
 
 ## Contents
 - [1) train_models.py](#train-models)
@@ -24,7 +24,8 @@ Trains Ultralytics YOLO segmentation models for a chosen dataset and augmentatio
    ```bash
    pip install -r requirements.txt
    ```
-3. Ensure pretrained weights exist locally:
+3. Extract **`datasets.zip`** from the repo root (see `docs/startup-local.md`) so dataset folders such as `data_640/` with `data.yaml` exist beside `scripts/`.
+4. Ensure pretrained weights exist locally:
    - `yolo_weights/yolo11n-seg.pt` for `--model yolo11n-seg`
    - `yolo_weights/yolo26n-seg.pt` for `--model yolo26n-seg`
 

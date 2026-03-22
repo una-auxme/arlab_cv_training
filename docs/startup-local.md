@@ -1,5 +1,7 @@
 # Training Pipeline (Local)
 
+This guide is the **main path** for working with the project: run training and evaluation directly on your machine using `scripts/local/`. SLURM-based cluster jobs are documented separately in `docs/startup-slurm.md` for users who train on HPC systems.
+
 ## 1) Setup
 1. Create and activate a virtual environment:
 ```bash
@@ -12,14 +14,21 @@ pip install -r requirements.txt
 ```
 
 ## 2) Data (datasets)
-`scripts/local/train_models.py` expects a dataset directory with a `data.yaml` in the repo root, e.g.:
+The repo includes **`datasets.zip`** in the **repository root**. Extract it there so the dataset folders end up in the repo root (next to `scripts/`, `docs/`, etc.):
+
+```bash
+unzip datasets.zip -d .
+```
+
+On Windows you can use Explorer (“Extract all…”) or PowerShell’s `Expand-Archive` into the repo root.
+
+`scripts/local/train_models.py` expects each dataset as a directory with a `data.yaml` under the repo root, e.g.:
 - `data_640/data.yaml`
 - `data_420/data.yaml`
 - `fruit_dataset_640/data.yaml`
 - `data_640_demo_day/data.yaml`
 
-Note: dataset directories are typically managed externally.
-The repo expects the directory names above to exist on disk.
+The archive is meant to contain these folders; after extraction, the names above must exist on disk.
 
 ## 3) Pretrained weights
 `scripts/local/train_models.py` lädt die Basismodell-Weights aus:
