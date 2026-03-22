@@ -31,7 +31,7 @@ On Windows you can use Explorer (“Extract all…”) or PowerShell’s `Expand
 The archive is meant to contain these folders; after extraction, the names above must exist on disk.
 
 ## 3) Pretrained weights
-`scripts/local/train_models.py` lädt die Basismodell-Weights aus:
+`scripts/local/train_models.py` loads base model weights from:
 - `yolo_weights/<base_model>.pt`
 
 For example:

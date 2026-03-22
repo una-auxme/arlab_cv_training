@@ -7,7 +7,7 @@
 #SBATCH --partition=epyc-gpu
 
 # Request memory (default 512M)
-# YOLO26 ist größer, daher etwas mehr Memory
+# YOLO26 is larger; request a bit more memory
 #SBATCH --mem=40G
 
 # CPU cores per task (for DataLoader num_workers)

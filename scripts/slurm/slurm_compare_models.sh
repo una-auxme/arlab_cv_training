@@ -7,7 +7,7 @@
 #SBATCH --partition=epyc-gpu
 
 # Request memory (default 512M)
-# Evaluation benötigt weniger Memory als Training
+# Evaluation needs less memory than training
 #SBATCH --mem=16G
 
 # CPU cores per task (for DataLoader num_workers)
